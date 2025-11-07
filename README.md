@@ -31,12 +31,6 @@ mgrep watch
 # Forget cached credentials
 mgrep logout
 
-# Inspect local configuration / credentials
-mgrep status
-
-# Persist defaults (store, authUrl, telemetry, etc.)
-mgrep config set store my-default-store
-
 # Provide explicit credentials if you don't want the browser flow
 mgrep --api-key <api-key> --store <store-id> <pattern>
 ```
@@ -53,12 +47,6 @@ mgrep --api-key <api-key> --store <store-id> <pattern>
 ## File sync
 
 - `mgrep watch` now uses a cross-platform watcher and tracks additions, edits, and deletions. It uploads files using repo-relative paths, so identical filenames in different folders no longer collide remotely.
-
-## Configuration
-
-- Config and credentials live in `~/.config/mgrep/` (override with `--config` or `MGREP_CONFIG_DIR`).
-- Use `mgrep config path` to see the file location, `mgrep config get <key>` to read a value, and `mgrep config set <key> <value>` to persist defaults (`store`, `authUrl`, `telemetry`, `logLevel`).
-- `mgrep status` summarizes the current config, credential cache, and default store.
 
 ## Development
 

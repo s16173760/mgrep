@@ -12,24 +12,14 @@ import {
   getRepoRelativePath,
 } from "./utils";
 import { CredentialsStore, resolveCredentials, type CredentialResolutionResult } from "./auth";
-import { loadConfig, saveConfig, updateConfig, getConfigPath, type MgrepConfig } from "./config";
 
-const KNOWN_COMMANDS = new Set([
-  "search",
-  "sync",
-  "status",
-  "watch",
-  "logout",
-  "config",
-  "stores",
-]);
+const KNOWN_COMMANDS = new Set(["search", "sync", "watch", "logout"]);
 
 type GlobalCLIOptions = {
   apiKey?: string;
   store?: string;
   authUrl?: string;
   nonInteractive?: boolean;
-  config?: string;
   verbose?: boolean;
 };
 
@@ -44,67 +34,31 @@ type ClientContext = {
   client: Mixedbread;
   credentials: CredentialResolutionResult;
   storeIdentifier: string;
-  config: MgrepConfig;
-  configDir?: string;
 };
-
-function getConfigContext(options: GlobalCLIOptions): { config: MgrepConfig; configDir?: string } {
-  const configDir = options.config;
-  const config = loadConfig({ configDir });
-  return { config, configDir };
-}
-
-function telemetryEnabled(config: MgrepConfig): boolean {
-  if (process.env.MGREP_DISABLE_TELEMETRY?.toLowerCase() === "true") {
-    return false;
-  }
-  return config.telemetry !== false;
-}
 
 async function createClientContext(
   opts: GlobalCLIOptions,
   ensureStoreCreation = true,
 ): Promise<ClientContext> {
-  const { config, configDir } = getConfigContext(opts);
-  const storePreference = opts.store ?? config.store;
-  const authUrl = opts.authUrl ?? config.authUrl;
-  const credentialsStore = new CredentialsStore(configDir);
+  const storePreference = opts.store ?? process.env.MXBAI_STORE;
+  const authUrl = opts.authUrl ?? process.env.MGREP_AUTH_URL;
+  const credentialsStore = new CredentialsStore();
   const credentials = await resolveCredentials(
     {
       cliApiKey: opts.apiKey,
       cliStore: storePreference,
       authUrl,
       nonInteractive: opts.nonInteractive,
-      configDir,
     },
     { credentialsStore },
   );
 
   const client = new Mixedbread({ apiKey: credentials.apiKey });
   const storeIdentifier = ensureStoreCreation
-    ? await ensureStore(client, opts.store ?? config.store ?? credentials.store)
-    : opts.store ?? config.store ?? credentials.store ?? "mgrep";
+    ? await ensureStore(client, opts.store ?? storePreference ?? credentials.store)
+    : opts.store ?? storePreference ?? credentials.store ?? "mgrep";
 
-  return { client, credentials, storeIdentifier, config, configDir };
-}
-
-function mergeConfigValue(config: MgrepConfig, key: string, value: string): MgrepConfig {
-  switch (key) {
-    case "store":
-      return { ...config, store: value };
-    case "authUrl":
-      return { ...config, authUrl: value || undefined };
-    case "telemetry":
-      return { ...config, telemetry: !isFalseLike(value) };
-    case "logLevel":
-      return { ...config, logLevel: value === "silent" ? "silent" : "info" };
-    default:
-      throw new Error(`Unknown config key: ${key}`);
-  }
-}
-
-function isFalseLike(value: string): boolean {
-  return ["0", "false", "no", "off"].includes(value.toLowerCase());
+  return { client, credentials, storeIdentifier };
 }
 
 async function listStoreFileInfos(client: Mixedbread, store: string): Promise<StoreFileCache> {
@@ -208,7 +162,6 @@ program
   .option("--store <string>", "The store to use")
   .option("--auth-url <string>", "Override the Mixedbread auth URL")
   .option("--non-interactive", "Disable browser-based login and fail if no credentials are available")
-  .option("--config <path>", "Directory that stores mgrep config and credentials")
   .option("--verbose", "Enable verbose logging output");
 
 program
@@ -241,48 +194,36 @@ program
 program
   .command("sync")
   .description("Upload a repository snapshot once and exit")
-  .action(async (_args, cmd) => {
+  .option("--watch", "Continue watching after the initial sync")
+  .action(async (cmd) => {
     const options = getOptions(cmd);
     const ctx = await createClientContext(options);
     const repoRoot = getGitRoot(process.cwd()) ?? process.cwd();
     console.log(`Syncing ${repoRoot} to store ${ctx.storeIdentifier}`);
-    await initialSync(ctx.client, ctx.storeIdentifier, repoRoot);
+    const cache = await initialSync(ctx.client, ctx.storeIdentifier, repoRoot);
     console.log("Sync complete.");
-  });
-
-program
-  .command("status")
-  .description("Show configuration and credential status")
-  .action(async (_args, cmd) => {
-    const options = getOptions(cmd);
-    const { config, configDir } = getConfigContext(options);
-    const credentialsStore = new CredentialsStore(configDir);
-    const cached = credentialsStore.read();
-
-    console.log(`Config file: ${getConfigPath(configDir)}`);
-    console.log(`Default store: ${config.store ?? "mgrep"}`);
-    console.log(`Auth URL override: ${config.authUrl ?? "<default>"}`);
-    console.log(`Telemetry: ${telemetryEnabled(config) ? "enabled" : "disabled"}`);
-    console.log(`Credentials: ${cached ? "cached" : "missing"}`);
-    if (cached) {
-      console.log(`  Cached store: ${cached.store ?? "unknown"}`);
-      console.log(`  Cached at: ${cached.createdAt}`);
+    if (cmd.opts().watch) {
+      console.log("Watcher enabled. Listening for file changes…");
+      startWatcher({
+        client: ctx.client,
+        store: ctx.storeIdentifier,
+        repoRoot,
+        cache,
+        verbose: options.verbose ?? false,
+      });
     }
   });
 
 program
   .command("watch")
   .description("Watch for file changes")
-  .action(async (_args, cmd) => {
+  .action(async (cmd) => {
     const options = getOptions(cmd);
     const ctx = await createClientContext(options);
 
     const watchRoot = process.cwd();
     const repoRoot = getGitRoot(watchRoot) ?? watchRoot;
     console.log("Watching for file changes in", repoRoot);
-    if (!telemetryEnabled(ctx.config)) {
-      console.log("Telemetry disabled (no usage data collected).");
-    }
     try {
       const remoteFiles = await initialSync(ctx.client, ctx.storeIdentifier, repoRoot);
       startWatcher({
@@ -290,7 +231,7 @@ program
         store: ctx.storeIdentifier,
         repoRoot,
         cache: remoteFiles,
-        verbose: options.verbose ?? ctx.config.logLevel !== "silent",
+        verbose: options.verbose ?? false,
       });
     } catch (err) {
       console.error("Failed to start watcher:", err);
@@ -305,78 +246,6 @@ program
     const store = new CredentialsStore();
     store.clear();
     console.log("Cleared cached mgrep credentials.");
-  });
-
-const configCommand = program.command("config").description("Inspect or update CLI configuration");
-
-configCommand
-  .command("path")
-  .description("Show the path to the config file")
-  .action((cmd) => {
-    const options = getOptions(cmd);
-    console.log(getConfigPath(options.config));
-  });
-
-configCommand
-  .command("get <key>")
-  .description("Show a config value (store, authUrl, telemetry, logLevel)")
-  .action((key, _args, cmd) => {
-    const options = getOptions(cmd);
-    const { config } = getConfigContext(options);
-    const value = (config as Record<string, unknown>)[key];
-    if (value === undefined) {
-      console.log("<undefined>");
-      return;
-    }
-    console.log(value);
-  });
-
-configCommand
-  .command("set <key> <value>")
-  .description("Persist a configuration value")
-  .action((key, value, cmd) => {
-    const options = getOptions(cmd);
-    try {
-      const next = updateConfig((current) => mergeConfigValue(current, key, value), {
-        configDir: options.config,
-      });
-      console.log(`Updated ${key}.`);
-      if (key === "store") {
-        console.log(`Default store is now ${next.store}`);
-      }
-    } catch (err) {
-      console.error((err as Error).message);
-      process.exitCode = 1;
-    }
-  });
-
-const storesCommand = program.command("stores").description("Manage Mixedbread stores");
-
-storesCommand
-  .command("list")
-  .option("--limit <number>", "Number of stores to display", (value) => Number.parseInt(value, 10), 10)
-  .action(async (_args, cmd) => {
-    const options = getOptions(cmd);
-    const ctx = await createClientContext(options, false);
-    let printed = 0;
-    let cursor: string | undefined;
-    const limit: number = cmd.opts().limit;
-    while (printed < limit) {
-      const pageSize = Math.min(100, limit - printed);
-      const page = await ctx.client.stores.list({ limit: pageSize, after: cursor });
-      for (const store of page.data) {
-        console.log(`${store.name ?? store.id}  (${store.id})`);
-        printed += 1;
-        if (printed >= limit) break;
-      }
-      if (!page.pagination?.has_more) {
-        break;
-      }
-      cursor = page.pagination.last_cursor ?? undefined;
-    }
-    if (printed === 0) {
-      console.log("No stores found for this account.");
-    }
   });
 
 injectImplicitSearchCommand();
