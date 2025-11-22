@@ -170,3 +170,42 @@ teardown() {
     assert_output --partial 'test-5.txt'
     refute_output --partial 'test-4.txt'
 }
+
+@test "Search with path scoping" {
+    # Search within a subdirectory
+    mkdir -p "$BATS_TMPDIR/test-store/sub"
+    echo "Hello sub" > "$BATS_TMPDIR/test-store/sub/sub.txt"
+    
+    # Sync only the sub folder? Or sync everything and search in sub.
+    # mgrep search --sync will sync current dir.
+    run mgrep search --sync Hello
+
+    # Search in sub
+    run mgrep search Hello sub
+
+    assert_success
+    assert_output --partial 'sub.txt'
+    refute_output --partial 'test.txt'
+}
+
+@test "Search non-existent path" {
+    run mgrep search Hello /does/not/exist
+
+    assert_success
+    refute_output --partial 'test.txt'
+    refute_output --partial 'Hello, world!'
+}
+
+@test "Watch dry run respects ignores" {
+    mkdir -p "$BATS_TMPDIR/test-store/watch-test"
+    echo "*.log" > "$BATS_TMPDIR/test-store/watch-test/.gitignore"
+    echo "Should be ignored" > "$BATS_TMPDIR/test-store/watch-test/test.log"
+    echo "Should be watched" > "$BATS_TMPDIR/test-store/watch-test/test.txt"
+    
+    cd "$BATS_TMPDIR/test-store/watch-test"
+    run mgrep watch --dry-run
+    
+    assert_success
+    assert_output --partial 'test.txt'
+    refute_output --partial 'test.log'
+}

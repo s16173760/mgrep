@@ -360,13 +360,27 @@ export class TestStore implements Store {
     query: string,
     top_k?: number,
     _search_options?: { rerank?: boolean },
-    _filters?: SearchFilter,
+    filters?: SearchFilter,
   ): Promise<SearchResponse> {
     const db = await this.load();
     const results: ChunkType[] = [];
     const limit = top_k || 10;
 
     for (const file of Object.values(db.files)) {
+      if (filters?.all) {
+        const pathFilter = filters.all.find(
+          (f) => "key" in f && f.key === "path" && f.operator === "starts_with",
+        );
+        if (
+          pathFilter &&
+          "value" in pathFilter &&
+          file.metadata &&
+          !file.metadata.path.startsWith(pathFilter.value as string)
+        ) {
+          continue;
+        }
+      }
+
       const lines = file.content.split("\n");
       for (let i = 0; i < lines.length; i++) {
         if (lines[i].toLowerCase().includes(query.toLowerCase())) {
