@@ -155,3 +155,18 @@ teardown() {
     assert_output --partial 'test.txt'
     refute_output --partial 'test-4.txt'
 }
+
+@test "Search with .mgrepignore recursive and allow patterns" {
+    # A .mgrepignore file in a subdirectory should be respected
+    rm "$BATS_TMPDIR/mgrep-test-store.json"
+    mkdir -p "$BATS_TMPDIR/test-store/test-dir"
+    printf "*.txt\n!test-5.txt" > "$BATS_TMPDIR/test-store/test-dir/.mgrepignore"
+    echo "Hello, world!\nA fourth test." > "$BATS_TMPDIR/test-store/test-dir/test-4.txt"
+    echo "Hello, world!\nA fifth test." > "$BATS_TMPDIR/test-store/test-dir/test-5.txt"
+    run mgrep search --sync test
+
+    assert_success
+    assert_output --partial 'test.txt'
+    assert_output --partial 'test-5.txt'
+    refute_output --partial 'test-4.txt'
+}
