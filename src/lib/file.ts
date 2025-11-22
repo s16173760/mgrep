@@ -38,6 +38,7 @@ export interface FileSystem {
  */
 export class NodeFileSystem implements FileSystem {
   private customIgnoreFilter: ReturnType<typeof ignore>;
+  private ignoreCache = new Map<string, ReturnType<typeof ignore>>();
 
   constructor(
     private git: Git,
@@ -71,6 +72,10 @@ export class NodeFileSystem implements FileSystem {
           continue;
         }
 
+        if (this.isIgnored(fullPath, root)) {
+          continue;
+        }
+
         if (entry.isDirectory()) {
           yield* this.getAllFilesRecursive(fullPath, root);
         } else if (entry.isFile()) {
@@ -84,12 +89,37 @@ export class NodeFileSystem implements FileSystem {
   }
 
   *getFiles(dirRoot: string): Generator<string> {
-    this.loadMgrepignore(dirRoot);
+    // Preload root .mgrepignore to ensure it's cached
+    this.getDirectoryIgnoreFilter(dirRoot);
+
     if (this.git.isGitRepository(dirRoot)) {
       yield* this.git.getGitFiles(dirRoot);
     } else {
       yield* this.getAllFilesRecursive(dirRoot, dirRoot);
     }
+  }
+
+  private getDirectoryIgnoreFilter(dir: string): ReturnType<typeof ignore> {
+    if (this.ignoreCache.has(dir)) {
+      return this.ignoreCache.get(dir) ?? ignore();
+    }
+
+    const ig = ignore();
+
+    // Load .gitignore
+    const gitignorePath = path.join(dir, ".gitignore");
+    if (fs.existsSync(gitignorePath)) {
+      ig.add(fs.readFileSync(gitignorePath, "utf8"));
+    }
+
+    // Load .mgrepignore
+    const mgrepignorePath = path.join(dir, ".mgrepignore");
+    if (fs.existsSync(mgrepignorePath)) {
+      ig.add(fs.readFileSync(mgrepignorePath, "utf8"));
+    }
+
+    this.ignoreCache.set(dir, ig);
+    return ig;
   }
 
   isIgnored(filePath: string, root: string): boolean {
@@ -98,9 +128,9 @@ export class NodeFileSystem implements FileSystem {
       return true;
     }
 
-    // Check custom ignore patterns
-    const relativePath = path.relative(root, filePath);
-    const normalizedPath = relativePath.replace(/\\/g, "/");
+    // Check custom ignore patterns (global/CLI)
+    const relativeToRoot = path.relative(root, filePath);
+    const normalizedRootPath = relativeToRoot.replace(/\\/g, "/");
 
     // Check if it's a directory
     let isDirectory = false;
@@ -111,24 +141,54 @@ export class NodeFileSystem implements FileSystem {
       isDirectory = false;
     }
 
-    const pathToCheck = isDirectory ? `${normalizedPath}/` : normalizedPath;
-    if (this.customIgnoreFilter.ignores(pathToCheck)) {
+    const pathToCheckRoot = isDirectory
+      ? `${normalizedRootPath}/`
+      : normalizedRootPath;
+    if (this.customIgnoreFilter.ignores(pathToCheckRoot)) {
       return true;
     }
 
-    // If in a git repository, check gitignore patterns
-    if (this.git.isGitRepository(root)) {
-      const filter = this.git.getGitIgnoreFilter(root);
-      return filter.isIgnored(filePath, root);
+    // Hierarchical check
+    let currentDir = isDirectory ? filePath : path.dirname(filePath);
+    const absoluteRoot = path.resolve(root);
+
+    // Walk up from file directory to root
+    while (true) {
+      const relativeToCurrent = path.relative(currentDir, filePath);
+      if (relativeToCurrent !== "") {
+        // If we are checking the directory itself against its own ignore file? No, files inside.
+        // But if we are checking a file `a/b.txt`, and we are at `a`, relative is `b.txt`.
+        // If we are at `root`, relative is `a/b.txt`.
+        const normalizedRelative = relativeToCurrent.replace(/\\/g, "/");
+        const pathToCheck = isDirectory
+          ? `${normalizedRelative}/`
+          : normalizedRelative;
+
+        const filter = this.getDirectoryIgnoreFilter(currentDir);
+
+        // Use internal test() method if available to distinguish ignored vs unignored
+        const result = filter.test(pathToCheck);
+        if (result.ignored) {
+          return true;
+        }
+        if (result.unignored) {
+          return false;
+        }
+      }
+
+      if (path.resolve(currentDir) === absoluteRoot) {
+        break;
+      }
+      const parent = path.dirname(currentDir);
+      if (parent === currentDir) break; // Safety break for root of fs
+      currentDir = parent;
     }
 
     return false;
   }
 
   loadMgrepignore(dirRoot: string): void {
-    const ignoreFile = path.join(dirRoot, ".mgrepignore");
-    if (fs.existsSync(ignoreFile)) {
-      this.customIgnoreFilter.add(fs.readFileSync(ignoreFile, "utf8"));
-    }
+    // Now handled by getDirectoryIgnoreFilter and caching
+    this.getDirectoryIgnoreFilter(dirRoot);
   }
 }

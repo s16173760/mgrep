@@ -107,3 +107,51 @@ teardown() {
     assert_output --partial 'Indexing files...'
     assert_output --partial 'Indexing complete'
 }
+
+@test "Search with .gitignore" {
+    rm "$BATS_TMPDIR/mgrep-test-store.json"
+    echo "*.txt" > "$BATS_TMPDIR/test-store/.gitignore"
+    run mgrep search --sync test
+
+    assert_success
+    refute_output --partial 'test.txt'
+    refute_output --partial 'test-2.txt'
+    refute_output --partial 'test-3.txt'
+}
+
+@test "Search with .gitignore recursive" {
+    # A .gitignore file in a subdirectory should be respected
+    rm "$BATS_TMPDIR/mgrep-test-store.json"
+    mkdir -p "$BATS_TMPDIR/test-store/test-dir"
+    echo "*.txt" > "$BATS_TMPDIR/test-store/test-dir/.gitignore"
+    echo "Hello, world!\nA fourth test." > "$BATS_TMPDIR/test-store/test-dir/test-4.txt"
+    run mgrep search --sync test
+
+    assert_success
+    assert_output --partial 'test.txt'
+    refute_output --partial 'test-4.txt'
+}
+
+@test "Search with .mgrepignore" {
+    rm "$BATS_TMPDIR/mgrep-test-store.json"
+    echo "*.txt" > "$BATS_TMPDIR/test-store/.mgrepignore"
+    run mgrep search --sync test
+
+    assert_success
+    refute_output --partial 'test.txt'
+    refute_output --partial 'test-2.txt'
+    refute_output --partial 'test-3.txt'
+}
+
+@test "Search with .mgrepignore recursive" {
+    # A .mgrepignore file in a subdirectory should be respected
+    rm "$BATS_TMPDIR/mgrep-test-store.json"
+    mkdir -p "$BATS_TMPDIR/test-store/test-dir"
+    echo "*.txt" > "$BATS_TMPDIR/test-store/test-dir/.mgrepignore"
+    echo "Hello, world!\nA fourth test." > "$BATS_TMPDIR/test-store/test-dir/test-4.txt"
+    run mgrep search --sync test
+
+    assert_success
+    assert_output --partial 'test.txt'
+    refute_output --partial 'test-4.txt'
+}
