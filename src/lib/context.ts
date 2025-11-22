@@ -1,5 +1,5 @@
 import Mixedbread from "@mixedbread/sdk";
-import { ensureAuthenticated, isDevelopment } from "../utils";
+import { ensureAuthenticated, isDevelopment, isTest } from "../utils";
 import { getJWTToken } from "./auth";
 import {
   type FileSystem,
@@ -7,7 +7,7 @@ import {
   NodeFileSystem,
 } from "./file";
 import { type Git, NodeGit } from "./git";
-import { MixedbreadStore, type Store } from "./store";
+import { MixedbreadStore, TestStore, type Store } from "./store";
 
 const BASE_URL = isDevelopment()
   ? "http://localhost:8000"
@@ -18,6 +18,10 @@ const BASE_URL = isDevelopment()
  * Supports authentication via MXBAI_API_KEY env var or OAuth token
  */
 export async function createStore(): Promise<Store> {
+  if (isTest) {
+    return new TestStore();
+  }
+
   await ensureAuthenticated();
   const jwtToken = await getJWTToken();
   const client = new Mixedbread({

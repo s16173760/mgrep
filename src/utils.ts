@@ -13,6 +13,8 @@ import type {
 
 import { getStoredToken } from "./token";
 
+export const isTest = process.env.MGREP_IS_TEST === "1";
+
 export function computeBufferHash(buffer: Buffer): string {
   return createHash("sha256").update(buffer).digest("hex");
 }
@@ -32,7 +34,7 @@ export function isDevelopment(): boolean {
   }
 
   // Check if NODE_ENV is set to development
-  if (process.env.NODE_ENV === "development") {
+  if (process.env.NODE_ENV === "development" || isTest) {
     return true;
   }
 

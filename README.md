@@ -179,6 +179,14 @@ pnpm format       # biome formatting + linting
 - Husky is wired via `pnpx husky init` (run `npx husky init` once after cloning).
 - Tests are not wired up yet—`pnpm typecheck` is your best friend before publishing.
 
+### Testing
+
+```bash
+pnpm test
+```
+
+The tests are written using [bats](https://bats-core.readthedocs.io/en/stable/).
+
 ## Troubleshooting
 
 - **Login keeps reopening**: run `mgrep logout` to clear cached tokens, then try `mgrep login` again.

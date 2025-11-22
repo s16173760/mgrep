@@ -105,7 +105,7 @@ export const search: Command = new CommanderCommand("search")
   .option("-i", "Makes the search case-insensitive", false)
   .option("-r", "Recursive search", false)
   .option(
-    "-m <max_count>, --max-count <max_count>",
+    "-m, --max-count <max_count>",
     "The maximum number of results to return",
     "10",
   )
@@ -132,8 +132,8 @@ export const search: Command = new CommanderCommand("search")
   .action(async (pattern, exec_path, _options, cmd) => {
     const options: {
       store: string;
-      m: string;
-      c: boolean;
+      maxCount: string;
+      content: boolean;
       answer: boolean;
       sync: boolean;
       dryRun: boolean;
@@ -187,7 +187,7 @@ export const search: Command = new CommanderCommand("search")
         const results = await store.search(
           options.store,
           pattern,
-          parseInt(options.m, 10),
+          parseInt(options.maxCount, 10),
           { rerank: true },
           {
             all: [
@@ -199,12 +199,12 @@ export const search: Command = new CommanderCommand("search")
             ],
           },
         );
-        response = formatSearchResponse(results, options.c);
+        response = formatSearchResponse(results, options.content);
       } else {
         const results = await store.ask(
           options.store,
           pattern,
-          parseInt(options.m, 10),
+          parseInt(options.maxCount, 10),
           { rerank: true },
           {
             all: [
@@ -216,7 +216,7 @@ export const search: Command = new CommanderCommand("search")
             ],
           },
         );
-        response = formatAskResponse(results, options.c);
+        response = formatAskResponse(results, options.content);
       }
 
       console.log(response);

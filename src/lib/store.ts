@@ -1,3 +1,4 @@
+import * as fs from "node:fs/promises";
 import type { Mixedbread } from "@mixedbread/sdk";
 import type { Uploadable } from "@mixedbread/sdk/core/uploads";
 import type { SearchFilter } from "@mixedbread/sdk/resources/shared";
@@ -224,5 +225,199 @@ export class MixedbreadStore implements Store {
         in_progress: response.file_counts?.in_progress ?? 0,
       },
     };
+  }
+}
+
+interface TestStoreDB {
+  info: StoreInfo;
+  files: Record<
+    string,
+    {
+      metadata: FileMetadata;
+      content: string;
+    }
+  >;
+}
+
+export class TestStore implements Store {
+  path: string;
+  private mutex: Promise<void> = Promise.resolve();
+
+  constructor() {
+    const path = process.env.MGREP_TEST_STORE_PATH;
+    if (!path) {
+      throw new Error("MGREP_TEST_STORE_PATH is not set");
+    }
+    this.path = path;
+  }
+
+  private async synchronized<T>(fn: () => Promise<T>): Promise<T> {
+    let unlock: () => void = () => {};
+    const newLock = new Promise<void>((resolve) => {
+      unlock = resolve;
+    });
+
+    const previousLock = this.mutex;
+    this.mutex = newLock;
+
+    await previousLock;
+
+    try {
+      return await fn();
+    } finally {
+      unlock();
+    }
+  }
+
+  private async load(): Promise<TestStoreDB> {
+    try {
+      const content = await fs.readFile(this.path, "utf-8");
+      return JSON.parse(content);
+    } catch {
+      return {
+        info: {
+          name: "Test Store",
+          description: "A test store",
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          counts: { pending: 0, in_progress: 0 },
+        },
+        files: {},
+      };
+    }
+  }
+
+  private async save(data: TestStoreDB): Promise<void> {
+    await fs.writeFile(this.path, JSON.stringify(data, null, 2));
+  }
+
+  private async readContent(file: File | ReadableStream): Promise<string> {
+    if ("text" in file && typeof (file as any).text === "function") {
+      return await (file as File).text();
+    }
+
+    const chunks: Buffer[] = [];
+    if (typeof (file as any)[Symbol.asyncIterator] === "function") {
+      for await (const chunk of file as any) {
+        chunks.push(Buffer.from(chunk));
+      }
+      return Buffer.concat(chunks).toString("utf-8");
+    }
+
+    if ("getReader" in file) {
+      const reader = (file as any).getReader();
+      const decoder = new TextDecoder();
+      let res = "";
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        res += decoder.decode(value, { stream: true });
+      }
+      res += decoder.decode();
+      return res;
+    }
+
+    throw new Error("Unknown file type");
+  }
+
+  async *listFiles(_storeId: string): AsyncGenerator<StoreFile> {
+    const db = await this.load();
+    for (const [external_id, file] of Object.entries(db.files)) {
+      yield {
+        external_id,
+        metadata: file.metadata,
+      };
+    }
+  }
+
+  async uploadFile(
+    _storeId: string,
+    file: File | ReadableStream,
+    options: UploadFileOptions,
+  ): Promise<void> {
+    const content = await this.readContent(file);
+    await this.synchronized(async () => {
+      const db = await this.load();
+      db.files[options.external_id] = {
+        metadata: options.metadata || { path: options.external_id, hash: "" },
+        content,
+      };
+      await this.save(db);
+    });
+  }
+
+  async search(
+    _storeId: string,
+    query: string,
+    top_k?: number,
+    _search_options?: { rerank?: boolean },
+    _filters?: SearchFilter,
+  ): Promise<SearchResponse> {
+    const db = await this.load();
+    const results: ChunkType[] = [];
+    const limit = top_k || 10;
+
+    for (const file of Object.values(db.files)) {
+      const lines = file.content.split("\n");
+      for (let i = 0; i < lines.length; i++) {
+        if (lines[i].toLowerCase().includes(query.toLowerCase())) {
+          results.push({
+            type: "text",
+            text: lines[i],
+            score: 1.0,
+            metadata: file.metadata,
+            chunk_index: results.length - 1,
+            generated_metadata: {
+              start_line: i,
+              num_lines: 1,
+            },
+          } as any);
+          if (results.length >= limit) break;
+        }
+      }
+      if (results.length >= limit) break;
+    }
+
+    return { data: results };
+  }
+
+  async retrieve(_storeId: string): Promise<unknown> {
+    const db = await this.load();
+    return db.info;
+  }
+
+  async create(options: CreateStoreOptions): Promise<unknown> {
+    return await this.synchronized(async () => {
+      const db = await this.load();
+      db.info.name = options.name;
+      db.info.description = options.description || "";
+      await this.save(db);
+      return db.info;
+    });
+  }
+
+  async ask(
+    storeId: string,
+    question: string,
+    top_k?: number,
+    search_options?: { rerank?: boolean },
+    filters?: SearchFilter,
+  ): Promise<AskResponse> {
+    const searchRes = await this.search(
+      storeId,
+      question,
+      top_k,
+      search_options,
+      filters,
+    );
+    return {
+      answer: 'This is a mock answer from TestStore.<cite i="0" />',
+      sources: searchRes.data,
+    };
+  }
+
+  async getInfo(_storeId: string): Promise<StoreInfo> {
+    const db = await this.load();
+    return db.info;
   }
 }
