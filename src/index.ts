@@ -6,6 +6,7 @@ import { login } from "./commands/login";
 import { logout } from "./commands/logout";
 import { search } from "./commands/search";
 import { watch } from "./commands/watch";
+import { watchMcp } from "./commands/watch_mcp";
 import { installClaudeCode, uninstallClaudeCode } from "./install/claude-code";
 import { setupLogger } from "./lib/logger";
 
@@ -31,5 +32,6 @@ program.addCommand(installClaudeCode);
 program.addCommand(uninstallClaudeCode);
 program.addCommand(login);
 program.addCommand(logout);
+program.addCommand(watchMcp);
 
 program.parse();
