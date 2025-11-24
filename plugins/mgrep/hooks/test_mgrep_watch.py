@@ -1,5 +1,6 @@
 import importlib.util
 import os
+import tempfile
 from pathlib import Path
 from unittest import TestCase, mock
 
@@ -46,17 +47,18 @@ class LaunchWatchTests(TestCase):
         self.assertNotIn("creationflags", called_kwargs)
 
     def test_respects_custom_tmp_dir(self):
-        with mock.patch.dict("os.environ", {"MGREP_TMP": "/custom/tmp"}):
-            module = load_module()
+        with tempfile.TemporaryDirectory() as tmpdir:
+            with mock.patch.dict("os.environ", {"MGREP_TMP": tmpdir}):
+                module = load_module()
 
-        m_open = mock.mock_open()
-        with mock.patch("builtins.open", m_open), \
-                mock.patch.object(module, "os") as mock_os, \
-                mock.patch.object(module, "subprocess") as mock_subprocess:
-            mock_os.name = "nt"
-            mock_subprocess.CREATE_NEW_PROCESS_GROUP = 0x0
+            m_open = mock.mock_open()
+            with mock.patch("builtins.open", m_open), \
+                    mock.patch.object(module, "os") as mock_os, \
+                    mock.patch.object(module, "subprocess") as mock_subprocess:
+                mock_os.name = "nt"
+                mock_subprocess.CREATE_NEW_PROCESS_GROUP = 0x0
 
-            module.launch_watch({"session_id": "abc"})
+                module.launch_watch({"session_id": "abc"})
 
-        first_open_path = m_open.call_args_list[0][0][0]
-        self.assertTrue(str(first_open_path).startswith("/custom/tmp/"))
+            first_open_path = Path(m_open.call_args_list[0][0][0])
+            self.assertTrue(str(first_open_path).startswith(str(Path(tmpdir))))

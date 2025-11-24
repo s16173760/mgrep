@@ -32,6 +32,7 @@ def read_hook_input() -> dict[str, object] | None:
 
 
 def launch_watch(payload: dict[str, object]) -> subprocess.Popen:
+    TMP_DIR.mkdir(parents=True, exist_ok=True)
     log_path = TMP_DIR / f"mgrep-watch-command-{payload.get('session_id')}.log"
     stdout_handle = open(log_path, "w")
     stderr_handle = open(log_path, "w")
@@ -57,6 +58,7 @@ if __name__ == "__main__":
     payload = read_hook_input()
     cwd = payload.get("cwd")
 
+    TMP_DIR.mkdir(parents=True, exist_ok=True)
     pid_file = TMP_DIR / f"mgrep-watch-pid-{payload.get('session_id')}.txt"
     if os.path.exists(pid_file):
         debug_log(f"PID file already exists: {pid_file}")
