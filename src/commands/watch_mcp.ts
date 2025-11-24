@@ -10,6 +10,15 @@ import { startWatch } from "./watch";
 export const watchMcp = new Command("mcp")
   .description("Start MCP server for mgrep")
   .action(async () => {
+    process.on("SIGINT", () => {
+      console.error("Received SIGINT, shutting down gracefully...");
+      process.exit(0);
+    });
+
+    process.on("SIGTERM", () => {
+      console.error("Received SIGTERM, shutting down gracefully...");
+      process.exit(0);
+    });
     const store = process.env.MXBAI_STORE || "mgrep";
     setTimeout(() => {
       startWatch({ store, dryRun: false });
@@ -41,13 +50,3 @@ export const watchMcp = new Command("mcp")
 
     await server.connect(transport);
   });
-
-process.on("SIGINT", () => {
-  console.error("Received SIGINT, shutting down gracefully...");
-  process.exit(0);
-});
-
-process.on("SIGTERM", () => {
-  console.error("Received SIGTERM, shutting down gracefully...");
-  process.exit(0);
-});
