@@ -2,6 +2,7 @@ import { exec } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { promisify } from "node:util";
 import { Command } from "commander";
 import { ensureAuthenticated } from "../utils";
 
@@ -47,43 +48,40 @@ search, grep, files, local files, local search, local grep, local search, local
 grep, local search, local grep
 `;
 
-function installPlugin() {
-  exec(
-    "codex mcp add mgrep mgrep mcp",
-    { shell, env: process.env },
-    (error) => {
-      if (error) {
-        console.error(`Error installing plugin: ${error}`);
-        process.exit(1);
-      }
+const execAsync = promisify(exec);
 
-      const destPath = path.join(os.homedir(), ".codex", "AGENTS.md");
-      fs.mkdirSync(path.dirname(destPath), { recursive: true });
-      fs.writeFileSync(destPath, SKILL);
-      console.log("Successfully added the mgrep to the Codex MCP server");
-    },
-  );
-}
-
-function uninstallPlugin() {
-  exec("codex mcp remove mgrep", { shell, env: process.env }, (error) => {
-    if (error) {
-      console.error(`Error uninstalling plugin: ${error}`);
-      process.exit(1);
-    }
+async function installPlugin() {
+  try {
+    await execAsync("codex mcp add mgrep mgrep mcp", { shell, env: process.env });
 
     const destPath = path.join(os.homedir(), ".codex", "AGENTS.md");
-    const existingContent = fs.existsSync(destPath)
-      ? fs.readFileSync(destPath, "utf-8")
-      : "";
-    const updatedContent = existingContent.replace(SKILL, "");
-    if (updatedContent.trim() === "") {
-      fs.unlinkSync(destPath);
-    } else {
-      fs.writeFileSync(destPath, updatedContent);
-    }
-    console.log("Successfully removed the mgrep from the Codex MCP server");
-  });
+    fs.mkdirSync(path.dirname(destPath), { recursive: true });
+    fs.writeFileSync(destPath, SKILL);
+    console.log("Successfully added the mgrep to the Codex MCP server");
+  } catch (error) {
+    console.error(`Error installing plugin: ${error}`);
+    process.exit(1);
+  }
+}
+
+async function uninstallPlugin() {
+  try {
+    await execAsync("codex mcp remove mgrep", { shell, env: process.env });
+  } catch (error) {
+    console.error(`Error uninstalling plugin: ${error}`);
+    process.exit(1);
+  }
+  const destPath = path.join(os.homedir(), ".codex", "AGENTS.md");
+  const existingContent = fs.existsSync(destPath)
+    ? fs.readFileSync(destPath, "utf-8")
+    : "";
+  const updatedContent = existingContent.replace(SKILL, "");
+  if (updatedContent.trim() === "") {
+    fs.unlinkSync(destPath);
+  } else {
+    fs.writeFileSync(destPath, updatedContent);
+  }
+  console.log("Successfully removed the mgrep from the Codex agent");
 }
 
 export const installCodex = new Command("install-codex")
