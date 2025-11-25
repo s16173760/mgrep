@@ -46,6 +46,7 @@
     "chalk": "^5.6.2",
     "commander": "^14.0.2",
     "ignore": "^7.0.5",
+    "istextorbinary": "^9.5.0",
     "open": "^10.2.0",
     "ora": "^5.4.1",
     "p-limit": "^3.1.0",
