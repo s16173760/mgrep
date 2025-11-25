@@ -15,7 +15,13 @@ export async function startWatch(options: {
   try {
     const store = await createStore();
     const fileSystem = createFileSystem({
-      ignorePatterns: ["*.lock", "*.bin", "*.ipynb", "*.pyc"],
+      ignorePatterns: [
+          "*.lock",
+          "*.bin",
+          "*.ipynb",
+          "*.pyc",
+          "*.safetensors",
+        ],
     });
     const watchRoot = process.cwd();
     console.debug("Watching for file changes in", watchRoot);

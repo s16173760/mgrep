@@ -226,3 +226,15 @@ teardown() {
     assert_output --partial 'test.txt'
     assert_output --partial 'without reranking'
 }
+
+@test "Text files are uploaded, binary files are skipped" {
+    echo "uniquetextcontent123" > "$BATS_TMPDIR/test-store/textfile.log"
+    cp "$DIR/assets/model.safetensors" "$BATS_TMPDIR/test-store/model.safetensors"
+    printf 'uniquebinarycontent456\x00\x01\x02' > "$BATS_TMPDIR/test-store/binaryfile.bin"
+
+    run mgrep watch --dry-run
+    assert_success
+    assert_output --partial 'textfile.log'
+    refute_output --partial 'model.safetensors'
+    refute_output --partial 'binaryfile.bin'
+}

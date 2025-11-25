@@ -32,6 +32,9 @@ importers:
       ignore:
         specifier: ^7.0.5
         version: 7.0.5
+      istextorbinary:
+        specifier: ^9.5.0
+        version: 9.5.0
       open:
         specifier: ^10.2.0
         version: 10.2.0
@@ -354,11 +357,15 @@ packages:
   better-call@1.0.19:
     resolution: {integrity: sha512-sI3GcA1SCVa3H+CDHl8W8qzhlrckwXOTKhqq3OOPXjgn5aTOMIqGY34zLY/pHA6tRRMjTUC3lz5Mi7EbDA24Kw==}
 
+  binaryextensions@6.11.0:
+    resolution: {integrity: sha512-sXnYK/Ij80TO3lcqZVV2YgfKN5QjUWIRk/XSm2J/4bd/lPko3lvk0O4ZppH6m+6hB2/GTu+ptNwVFe1xh+QLQw==}
+    engines: {node: '>=4'}
+
   bl@4.1.0:
     resolution: {integrity: sha512-1W07cM9gS6DcLperZfFSj+bWLtaPGSOHWhPiGzXmvVJbRLdG82sH/Kn8EtW1VqWVA54AKf2h5k5BbnIbwF3h6w==}
 
-  body-parser@2.2.0:
-    resolution: {integrity: sha512-02qvAaxv8tp7fBa/mw1ga98OGm+eCbqzJOKoRt70sLmfEEi+jyBYVTDGfCL/k06/4EMk/z01gCe7HoCH/f2LTg==}
+  body-parser@2.2.1:
+    resolution: {integrity: sha512-nfDwkulwiZYQIGwxdy0RUmowMhKcFVcYXUU7m4QlKYim1rUtg83xm2yjZ40QjDuc291AJjjeSc9b++AWHSgSHw==}
     engines: {node: '>=18'}
 
   buffer@5.7.1:
@@ -486,6 +493,10 @@ packages:
     resolution: {integrity: sha512-KIN/nDJBQRcXw0MLVhZE9iQHmG68qAVIBg9CqmUYjmQIhgij9U5MFvrqkUL5FbtyyzZuOeOt0zdeRe4UY7ct+A==}
     engines: {node: '>= 0.4'}
 
+  editions@6.22.0:
+    resolution: {integrity: sha512-UgGlf8IW75je7HZjNDpJdCv4cGJWIi6yumFdZ0R7A8/CIhQiWUjyGLCxdHpd8bmyD1gnkfUNK0oeOXqUS2cpfQ==}
+    engines: {ecmascript: '>= es5', node: '>=4'}
+
   ee-first@1.1.1:
     resolution: {integrity: sha512-WMwm9LhRUo+WUaRN+vRuETqG89IgZphVSNkdFgeb6sS/E4OrDIN7t48CAewSHXc6C8lefD8KKfr5vY61brQlow==}
 
@@ -596,10 +607,6 @@ packages:
     engines: {node: '>=18'}
     hasBin: true
 
-  iconv-lite@0.6.3:
-    resolution: {integrity: sha512-4fCk79wshMdzMp2rH06qWrJE4iolqLhCUH+OiuIgU++RB0+94NlDL81atO7GX55uUKueo0txHNtvEyI6D7WdMw==}
-    engines: {node: '>=0.10.0'}
-
   iconv-lite@0.7.0:
     resolution: {integrity: sha512-cf6L2Ds3h57VVmkZe+Pn+5APsT7FpqJtEhhieDCvrE2MK5Qk9MyffgQyuxQTm6BChfeZNtcOLHp9IcWRVcIcBQ==}
     engines: {node: '>=0.10.0'}
@@ -649,6 +656,10 @@ packages:
 
   isexe@2.0.0:
     resolution: {integrity: sha512-RHxMLp9lnKHGHRng9QFhRCMbYAcVpn69smSGcq3f36xjgVVWThj4qqLbTLlq7Ssj8B+fIQ1EuCEGI2lKsyQeIw==}
+
+  istextorbinary@9.5.0:
+    resolution: {integrity: sha512-5mbUj3SiZXCuRf9fT3ibzbSSEWiy63gFfksmGfdOzujPjW3k+z8WvIBxcJHBoQNlaZaiyB25deviif2+osLmLw==}
+    engines: {node: '>=4'}
 
   jose@6.1.0:
     resolution: {integrity: sha512-TTQJyoEoKcC1lscpVDCSsVgYzUDg/0Bt3WE//WiTPK6uOCQC2KZS4MpugbMWt/zyjkopgZoXhZuCi00gLudfUA==}
@@ -889,6 +900,10 @@ packages:
   text-hex@1.0.0:
     resolution: {integrity: sha512-uuVGNWzgJ4yhRaNSiubPY7OjISw4sw4E5Uv0wbjp+OzcbmVU/rsT8ujgcXJhn9ypzsgr5vlzpPqP+MBBKcGvbg==}
 
+  textextensions@6.11.0:
+    resolution: {integrity: sha512-tXJwSr9355kFJI3lbCkPpUH5cP8/M0GGy2xLO34aZCjMXBaK3SoPnZwr/oWmo1FdCnELcs4npdCIOFtq9W3ruQ==}
+    engines: {node: '>=4'}
+
   toidentifier@1.0.1:
     resolution: {integrity: sha512-o5sSPKEkg/DIQNmH43V0/uerLrpzVedkUh8tGNvaeXpfpuwjKenlSox/2O/BTlZUtEe+JG7s5YhEz608PlAHRA==}
     engines: {node: '>=0.6'}
@@ -932,6 +947,10 @@ packages:
   vary@1.1.2:
     resolution: {integrity: sha512-BNGbWLfd0eUPabhkXUVm0j8uuvREyTh5ovRa/dyow/BqAbZJyC+5fU+IzQOzmAKzYqYRAISoRhdQr3eIZ/PXqg==}
     engines: {node: '>= 0.8'}
+
+  version-range@4.15.0:
+    resolution: {integrity: sha512-Ck0EJbAGxHwprkzFO966t4/5QkRuzh+/I1RxhLgUKKwEn+Cd8NwM60mE3AqBZg5gYODoXW0EFsQvbZjRlvdqbg==}
+    engines: {node: '>=4'}
 
   wcwidth@1.0.1:
     resolution: {integrity: sha512-XHPEwS0q6TaxcvG85+8EYkbiCux2XtWG2mkc47Ng2A77BQu9+DqIOJldST4HgPkuea7dvKSj5VgX3P1d4rW8Tg==}
@@ -1324,19 +1343,23 @@ snapshots:
       set-cookie-parser: 2.7.2
       uncrypto: 0.1.3
 
+  binaryextensions@6.11.0:
+    dependencies:
+      editions: 6.22.0
+
   bl@4.1.0:
     dependencies:
       buffer: 5.7.1
       inherits: 2.0.4
       readable-stream: 3.6.2
 
-  body-parser@2.2.0:
+  body-parser@2.2.1:
     dependencies:
       bytes: 3.1.2
       content-type: 1.0.5
       debug: 4.4.3
       http-errors: 2.0.1
-      iconv-lite: 0.6.3
+      iconv-lite: 0.7.0
       on-finished: 2.4.1
       qs: 6.14.0
       raw-body: 3.0.2
@@ -1449,6 +1472,10 @@ snapshots:
       es-errors: 1.3.0
       gopd: 1.2.0
 
+  editions@6.22.0:
+    dependencies:
+      version-range: 4.15.0
+
   ee-first@1.1.1: {}
 
   enabled@2.0.0: {}
@@ -1480,7 +1507,7 @@ snapshots:
   express@5.1.0:
     dependencies:
       accepts: 2.0.0
-      body-parser: 2.2.0
+      body-parser: 2.2.1
       content-disposition: 1.0.1
       content-type: 1.0.5
       cookie: 0.7.2
@@ -1576,10 +1603,6 @@ snapshots:
 
   husky@9.1.7: {}
 
-  iconv-lite@0.6.3:
-    dependencies:
-      safer-buffer: 2.1.2
-
   iconv-lite@0.7.0:
     dependencies:
       safer-buffer: 2.1.2
@@ -1611,6 +1634,12 @@ snapshots:
       is-inside-container: 1.0.0
 
   isexe@2.0.0: {}
+
+  istextorbinary@9.5.0:
+    dependencies:
+      binaryextensions: 6.11.0
+      editions: 6.22.0
+      textextensions: 6.11.0
 
   jose@6.1.0: {}
 
@@ -1855,6 +1884,10 @@ snapshots:
 
   text-hex@1.0.0: {}
 
+  textextensions@6.11.0:
+    dependencies:
+      editions: 6.22.0
+
   toidentifier@1.0.1: {}
 
   triple-beam@1.4.1: {}
@@ -1884,6 +1917,8 @@ snapshots:
   util-deprecate@1.0.2: {}
 
   vary@1.1.2: {}
+
+  version-range@4.15.0: {}
 
   wcwidth@1.0.1:
     dependencies:

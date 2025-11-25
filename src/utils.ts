@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { cancel, confirm, isCancel } from "@clack/prompts";
+import { isText } from "istextorbinary";
 import pLimit from "p-limit";
 import { loginAction } from "./commands/login";
 import type { FileSystem } from "./lib/file";
@@ -111,6 +112,9 @@ export async function uploadFile(
       options,
     );
   } catch (_err) {
+    if (!isText(filePath)) {
+      return false;
+    }
     await store.uploadFile(
       storeId,
       new File([buffer], fileName, { type: "text/plain" }),
