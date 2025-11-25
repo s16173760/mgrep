@@ -59,8 +59,19 @@ async function installPlugin() {
 
     const destPath = path.join(os.homedir(), ".codex", "AGENTS.md");
     fs.mkdirSync(path.dirname(destPath), { recursive: true });
-    fs.appendFileSync(destPath, SKILL);
-    console.log("Successfully added the mgrep to the Codex agent");
+    
+    let existingContent = "";
+    if (fs.existsSync(destPath)) {
+      existingContent = fs.readFileSync(destPath, "utf-8");
+    }
+    
+    const skillTrimmed = SKILL.trim();
+    if (!existingContent.includes(SKILL) && !existingContent.includes(skillTrimmed)) {
+      fs.appendFileSync(destPath, SKILL);
+      console.log("Successfully added the mgrep to the Codex agent");
+    } else {
+      console.log("The mgrep skill is already installed in the Codex agent");
+    }
   } catch (error) {
     console.error(`Error installing plugin: ${error}`);
     process.exit(1);
@@ -77,8 +88,16 @@ async function uninstallPlugin() {
 
   const destPath = path.join(os.homedir(), ".codex", "AGENTS.md");
   if (fs.existsSync(destPath)) {
-    const existingContent = fs.readFileSync(destPath, "utf-8");
-    const updatedContent = existingContent.replace(SKILL, "");
+    let existingContent = fs.readFileSync(destPath, "utf-8");
+    let updatedContent = existingContent;
+    let previousContent = "";
+    
+    while (updatedContent !== previousContent) {
+      previousContent = updatedContent;
+      updatedContent = updatedContent.replace(SKILL, "");
+      updatedContent = updatedContent.replace(SKILL.trim(), "");
+    }
+    
     if (updatedContent.trim() === "") {
       fs.unlinkSync(destPath);
     } else {
