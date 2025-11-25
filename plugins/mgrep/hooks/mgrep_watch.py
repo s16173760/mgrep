@@ -1,6 +1,7 @@
 import os
 import sys
 import json
+import shutil
 import subprocess
 import tempfile
 from datetime import datetime
@@ -37,16 +38,21 @@ def launch_watch(payload: dict[str, object]) -> subprocess.Popen:
     stdout_handle = open(log_path, "w")
     stderr_handle = open(log_path, "w")
 
+    # Find mgrep executable (handles .cmd on Windows)
+    mgrep_path = shutil.which("mgrep")
+    if not mgrep_path:
+        raise FileNotFoundError("mgrep command not found in PATH")
+
     if os.name == "nt":
         return subprocess.Popen(
-            ["mgrep", "watch"],
+            [mgrep_path, "watch"],
             stdout=stdout_handle,
             stderr=stderr_handle,
             creationflags=subprocess.CREATE_NEW_PROCESS_GROUP,
         )
 
     return subprocess.Popen(
-        ["mgrep", "watch"],
+        [mgrep_path, "watch"],
         preexec_fn=os.setsid,
         stdout=stdout_handle,
         stderr=stderr_handle,
