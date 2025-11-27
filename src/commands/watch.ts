@@ -71,24 +71,23 @@ export async function startWatch(options: {
         return;
       }
 
-      let fileExists = false;
       try {
         const stat = fs.statSync(filePath);
-        fileExists = stat.isFile();
-      } catch {
-        fileExists = false;
-      }
+        if (!stat.isFile()) {
+          return;
+        }
 
-      if (fileExists) {
         console.log(`${eventType}: ${filePath}`);
         uploadFile(store, options.store, filePath, filename).catch((err) => {
           console.error("Failed to upload changed file:", filePath, err);
         });
-      } else if (filePath.startsWith(watchRoot)) {
-        console.log(`delete: ${filePath}`);
-        deleteFile(store, options.store, filePath).catch((err) => {
-          console.error("Failed to delete file:", filePath, err);
-        });
+      } catch {
+        if (filePath.startsWith(watchRoot) && !fs.existsSync(filePath)) {
+          console.log(`delete: ${filePath}`);
+          deleteFile(store, options.store, filePath).catch((err) => {
+            console.error("Failed to delete file:", filePath, err);
+          });
+        }
       }
     });
   } catch (error) {
