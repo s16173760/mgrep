@@ -16,6 +16,17 @@ import { getStoredToken } from "./token";
 
 export const isTest = process.env.MGREP_IS_TEST === "1";
 
+function isSubpath(parent: string, child: string): boolean {
+  const parentPath = path.resolve(parent);
+  const childPath = path.resolve(child);
+
+  const parentWithSep = parentPath.endsWith(path.sep)
+    ? parentPath
+    : parentPath + path.sep;
+
+  return childPath.startsWith(parentWithSep);
+}
+
 export function computeBufferHash(buffer: Buffer): string {
   return createHash("sha256").update(buffer).digest("hex");
 }
@@ -141,7 +152,7 @@ export async function initialSync(
   const repoFileSet = new Set(repoFiles);
 
   const filesToDelete = Array.from(storeHashes.keys()).filter(
-    (filePath) => filePath.startsWith(repoRoot) && !repoFileSet.has(filePath),
+    (filePath) => isSubpath(repoRoot, filePath) && !repoFileSet.has(filePath),
   );
 
   const total = repoFiles.length + filesToDelete.length;
